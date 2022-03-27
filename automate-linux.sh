@@ -1020,6 +1020,8 @@ remove_raid() {
 
 add_users() {
         start
+        local os
+        os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
         if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
                 read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
                 read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
