@@ -1082,14 +1082,9 @@ add_users() {
 }
 
 del_users() {
-        getent passwd | awk -F: '$3 >= 1000{print "User: "$1," | " "Shell: "$7}' | column -t
-        read -rp "Please enter a list of users seperated by a comma that you would like to delete from the list above: " user_del_list
-        sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_del_list > del_list.chiketool
-        while read -r user_del; do 
-	        sudo userdel -r "$user_del" 
-	        echo "$user_del and all of their files and directories have been deleted from the system"
-        done < del_list.chiketool
-        rm -rf del_list.chiketool
+        getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
+        read -rp "Please enter the number of the user you wish to remove: " user_del_list
+        getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sed -n "$((del_list+1))s/\([^ ]*\).*/userdel -r \1/pe"
         sleep 3
         clear
         end
