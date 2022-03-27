@@ -1030,14 +1030,14 @@ add_users() {
                 read -rp "What password would you like to set for the user? " password
                 sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list > list.chiketool
                 while read -r user; do 
-	                sudo useradd -m --shell /bin/"$shell" "$user" 
-	                sudo echo "$user:$password" | chpasswd
+	                sudo useradd -m -p $(openssl passwd -1 "$password") --shell /bin/"$shell" "$user" 
+	                #sudo echo "$user:$password" | chpasswd
 	                echo "$user has been added to the system with a $shell shell"
                 done < list.chiketool
                 read -rp "Should the user have sudo/root access? " access
                 if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
 	                while read -r user1; do
-		                sudo usermod -aG wheel "$user1"
+		                sudo usermod -aG sudo "$user1"
 		                echo "$user1 has successfully been added to the wheel group"
 	                done < list.chiketool
 	                rm -rf list.chiketool
@@ -1088,10 +1088,12 @@ del_users() {
         read -rp "Please enter the number of the user you wish to remove: " user_del_list
 	if [[ "$user_del_list" -eq 0 ]]; then
 		echo "Cannot remove this user, please select another"
+		del_users
 	elif [[ "$user_del_list" -gt 0 ]]; then
-        	getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe"
+        	getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" &> /dev/null
 	else
 		echo "Cannot remove this user, please select another"
+		del_users
 	fi
         sleep 3
         clear
