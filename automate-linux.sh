@@ -60,7 +60,7 @@ splash_screen() {
 
         
         clear
-        echo "Hello $(echo "$engineer_name" | sed -z 's/./&\n/g')" | while read -r line; do
+        echo "Hello $(echo $engineer_name | sed -z 's/./&\n/g')" | while read -r line; do
                 printf '%s' "$line"
                 sleep 1
         done &
@@ -827,7 +827,7 @@ raid() {
                                 sleep 3
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
-                        sudo mkdir -p "$mnt_dir"
+                        sudo mkdir -p $mnt_dir
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
 
                         #Ensure array is reassembled during boot
@@ -870,7 +870,7 @@ raid() {
                                 sleep 3
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
-                        sudo mkdir -p "$mnt_dir"
+                        sudo mkdir -p $mnt_dir
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
 
                         #Ensure array is reassembled during boot
@@ -914,7 +914,7 @@ raid() {
                                 sleep 3
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
-                        sudo mkdir -p "$mnt_dir"
+                        sudo mkdir -p $mnt_dir
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
 
                         #Ensure array is reassembled during boot
@@ -959,7 +959,7 @@ raid() {
                                 sleep 3
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
-                        sudo mkdir -p "$mnt_dir"
+                        sudo mkdir -p $mnt_dir
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
 
                         #Ensure array is reassembled during boot
@@ -987,7 +987,7 @@ remove_raid() {
         echo "Y"
         echo "N"
         read -rp "Selection: " destroy 
-        if [[ "$destroy" == "Y" ]] || [[ "$destroy" == "y" ]]; then
+        if [[ $destroy == "Y" ]] || [[ $destroy == "y" ]]; then
                 sudo cat /proc/mdstat &>>  /var/log/Chike_tools/remove_raid.log 2>&1
 
                 #Unmount the array from filesystem
@@ -1002,7 +1002,7 @@ remove_raid() {
                 remove=$(lsblk -o KNAME,FSTYPE | grep -B1 "rem_array" | awk '$1~/sd/{print $1}')
 
                 #Run through list of found drives to zero their superblocks and reset to normal
-                for line in $remove; do
+                for line in "$remove"; do
                 sudo mdadm --zero-superblock /dev/"$line" &>>  /var/log/Chike_tools/remove_raid.log 2>&1
                 done
 
@@ -1020,39 +1020,69 @@ remove_raid() {
 
 add_users() {
         start
-        read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
-        read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
-        read -rp "What password would you like to set for the user? " password
-        sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_list" > list.chiketool
-        while read -r user; do 
-	        sudo adduser -m --shell /bin/"$shell" "$user" 
-	        sudo echo "$user:$password" | chpasswd
-	        echo "$user has been added to the system with a $shell shell"
-        done < list.chiketool
-        read -rp "Should the user have sudo/root access? " access
-        if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "$access" == "Yes" ]];then
-	        while read -r user1; do
-		        sudo usermod -aG wheel "$user1"
-		        echo "$user1 has successfully been added to the wheel group"
-	        done < list.chiketool
-	        rm -rf list.chiketool
-                sleep 3
-                clear
-                end
-                menu
-        else
-	        rm -rf list.chiketool
-                sleep 3
-                clear
-                end
-                menu
+        if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+                read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
+                read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
+                read -rp "What password would you like to set for the user? " password
+                sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list > list.chiketool
+                while read -r user; do 
+	                sudo useradd -m --shell /bin/"$shell" "$user" 
+	                sudo echo "$user:$password" | chpasswd
+	                echo "$user has been added to the system with a $shell shell"
+                done < list.chiketool
+                read -rp "Should the user have sudo/root access? " access
+                if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
+	                while read -r user1; do
+		                sudo usermod -aG wheel "$user1"
+		                echo "$user1 has successfully been added to the wheel group"
+	                done < list.chiketool
+	                rm -rf list.chiketool
+                        sleep 3
+                        clear
+                        end
+                        menu
+                else
+	                rm -rf list.chiketool
+                        sleep 3
+                        clear
+                        end
+                        menu
+                fi
+        elif [[ "$os" == "rhel" ]]; then
+                read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
+                read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
+                read -rp "What password would you like to set for the user? " password
+                sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list > list.chiketool
+                while read -r user; do 
+	                sudo adduser -m --shell /bin/"$shell" "$user" 
+	                sudo echo "$user:$password" | chpasswd
+	                echo "$user has been added to the system with a $shell shell"
+                done < list.chiketool
+                read -rp "Should the user have sudo/root access? " access
+                if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
+	                while read -r user1; do
+		                sudo usermod -aG wheel "$user1"
+		                echo "$user1 has successfully been added to the wheel group"
+	                done < list.chiketool
+	                rm -rf list.chiketool
+                        sleep 3
+                        clear
+                        end
+                        menu
+                else
+	                rm -rf list.chiketool
+                        sleep 3
+                        clear
+                        end
+                        menu
+                fi
         fi
 }
 
 del_users() {
         getent passwd | awk -F: '$3 >= 1000{print "User: "$1," | " "Shell: "$7}' | column -t
         read -rp "Please enter a list of users seperated by a comma that you would like to delete from the list above: " user_del_list
-        sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" > del_list.chiketool
+        sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_del_list > del_list.chiketool
         while read -r user_del; do 
 	        sudo userdel -r "$user_del" 
 	        echo "$user_del and all of their files and directories have been deleted from the system"
@@ -1071,7 +1101,7 @@ del_users() {
 #Additonal functionality and features can easily be added. Feel free to ask me if there is a feature you feel may be needed in this script.
 
 "$@"
-if [[ "$engineer_name" =~ [a-z] ]]; then
+if [[ $engineer_name =~ [a-z] ]]; then
         menu
 else
         clear
