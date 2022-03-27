@@ -5,7 +5,8 @@ type getenforce &> /dev/null
 if [[ "$?" -ne 0 ]]; then
 	state=$(getenforce)
 fi
-os=$(awk -F= '/\<ID\>/{gsub(/"/,"");print $2}' /etc/os-release)
+#os=$(awk -F= '/\<ID\>/{gsub(/"/,"");print $2}' /etc/os-release)
+os=$(sed -n '/ID_LIKE/s/.*="\?\([^ ]*\).*/\1/p' /etc/os-release)
 
 
 
@@ -13,8 +14,8 @@ os=$(awk -F= '/\<ID\>/{gsub(/"/,"");print $2}' /etc/os-release)
 splash_screen() {
         local me
         local file
-        local os
-        os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
+        #local os
+        #os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
         #Grab user without sudo mask to set permissions for files and directories for logging
         me=$(whoami)
         file="/var/log/Chike_tools/logs"
@@ -23,7 +24,7 @@ splash_screen() {
 
         #Is python installed?
         dir="/usr/bin/python3"
-        if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                 if [[ ! -d "$dir" ]];then
                         if [[ ! -f "$file" ]];then
                                 sudo touch "$file"
@@ -31,7 +32,7 @@ splash_screen() {
                         fi
                         sudo apt -y install python3 &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" ]];then
+        elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
                 if [[ ! -d "$dir" ]];then
                         if [[ ! -f "$file" ]];then
                                 sudo touch "$file"
@@ -47,11 +48,11 @@ splash_screen() {
 
         #Is curl installed?
         curled="/usr/bin/curl"
-        if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                 if [[ ! -d "$curled" ]];then
                         sudo apt -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" ]];then 
+        elif [[ "$os" == "rhel" || "$os" == "centos" ]];then 
                 if [[ ! -d "$curled" ]];then
                         sudo yum -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
@@ -246,7 +247,7 @@ gen_csr() {
         start
         read -r -p "What subdomain should the CSR use (do not include the .lsbu.ac.uk extension)? " domain
         echo "$(date +'%T %D'),CSR for $domain is preparing to generate" | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/generate_csr.log
-        os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
+        #os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
         openssl req -new -newkey rsa:2048 -nodes -keyout "$domain".lsbu.ac.uk.key -out "$domain".lsbu.ac.uk.csr | sudo tee -a /var/log/Chike_tools/generate_csr.log 2>&1
         sudo mv  "$domain".lsbu.ac.uk.csr /etc/pki/tls/certs/
         sudo mv  "$domain".lsbu.ac.uk.key /etc/pki/tls/private/
@@ -273,8 +274,8 @@ req_cert() {
         #All credentials can be obtained from Sectigo dashboard under ACME. Elevated privileges will need to be requested to authenticate.
         #Is certbot installed?
         start
-        local os
-        os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
+        #local os
+        #os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
         type certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
         if [[ "$?" -eq 0 ]]; then
                 echo "$(date +'%T %D'),certbot is available" | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/request_cert.log
@@ -282,7 +283,7 @@ req_cert() {
                 echo "$(date +'%T %D'),installing certbot" | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/request_cert.log
 
                 #Install ACME certbot to automate certificates for Sectigo. Can be run on rhel or Debian based distributions.
-                if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+                if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                         sudo apt -y install software-properties-common &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo add-apt-repository universe &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo add-apt-repository ppa:certbot/certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
@@ -296,7 +297,7 @@ req_cert() {
                                 sudo /opt/certbot/bin/pip install certbot certbot-apache &>> /var/log/Chike_tools/request_cert.log 2>&1
                                 sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
                         fi
-                elif [[ "$os" == "rhel" ]];then
+                elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
                         sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install epel-release &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
@@ -341,10 +342,10 @@ Kind regards
 Linux is MUCH better than Windozz
 EOF
 
-                        if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+                        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                                 sudo mail -r "$email" -A /etc/letsencrypt/live/"$domain".lsbu.ac.uk/cert.pem -A /etc/letsencrypt/live/"$domain".lsbu.ac.uk/privkey.pem -A /etc/letsencrypt/live/"$domain".lsbu.ac.uk/chain.pem -s "CertificateFile For $domain.lsbu.ac.uk" "$email" < Certificate
                                 rm -rf Certificate
-                        elif [[ "$os" == "rhel" ]];then
+                        elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
                                 sudo mail -r "$email" -a /etc/letsencrypt/live/"$domain".lsbu.ac.uk/cert.pem -a /etc/letsencrypt/live/"$domain".lsbu.ac.uk/privkey.pem -a /etc/letsencrypt/live/"$domain".lsbu.ac.uk/chain.pem -s "CertificateFile For $domain.lsbu.ac.uk" "$email" < Certificate
                                 rm -rf Certificate
                         fi
@@ -355,11 +356,11 @@ EOF
                 #SSL should be functional after restarting the webserver
                 # All request to root will be redirected to HTTPS
 
-                if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+                if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                         sudo sed '/<IfModule mod_ssl.c>/,/<\/IfModule>/d' /etc/apache2/apache2.conf > /tmp/temp
                         sudo rm -rf /etc/apache2/apache2.conf
                         sudo mv /tmp/temp /etc/apache2/apache2.conf
-                elif [[ "$os" == "rhel" ]];then        
+                elif [[ "$os" == "rhel" || "$os" == "centos" ]];then        
                         sudo sed '/<IfModule mod_ssl.c>/,/<\/IfModule>/d' /etc/httpd/conf/httpd.conf > /tmp/temp
                         sudo rm -rf /etc/httpd/conf/httpd.conf
                         sudo mv /tmp/temp /etc/httpd/conf/httpd.conf
@@ -377,7 +378,7 @@ EOF
                                 echo "Automatic https redirect added to apache configuration file"  | sudo tee -a /var/log/Chike_tools/request_cert.log
                         fi
                 fi
-                if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+                if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                         sudo systemctl restart apache2 &>> /var/log/Chike_tools/request_cert.log 
                         if [[ "$?" -eq 0 ]];then
                                 echo "Webserver has started successfully" | sudo tee -a /var/log/Chike_tools/request_cert.log
@@ -392,7 +393,7 @@ EOF
                                 end
                                 menu
                         fi
-                elif [[ "$os" == "rhel" ]];then
+                elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
                         sudo systemctl restart httpd &>> /var/log/Chike_tools/request_cert.log 
                         if [[ "$?" -eq 0 ]];then
                                 echo "Webserver has started successfully" | sudo tee -a /var/log/Chike_tools/request_cert.log
@@ -1020,9 +1021,9 @@ remove_raid() {
 
 add_users() {
         start
-        local os
-        os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
-        if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
+        #local os
+        #os=$(awk -F= '/^ID=/{gsub(/"/,"");print $2}' /etc/os-release)
+        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                 read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
                 read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
                 read -rp "What password would you like to set for the user? " password
@@ -1050,7 +1051,7 @@ add_users() {
                         end
                         menu
                 fi
-        elif [[ "$os" == "rhel" ]]; then
+        elif [[ "$os" == "rhel" || "$os" == "centos" ]]; then
                 read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
                 read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
                 read -rp "What password would you like to set for the user? " password
