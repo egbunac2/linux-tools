@@ -1084,7 +1084,7 @@ add_users() {
 del_users() {
         getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
         read -rp "Please enter the number of the user you wish to remove: " user_del_list
-        getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((del_list+1))s/\([^ ]*\).*/userdel -r \1/pe"
+        getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe"
         sleep 3
         clear
         end
