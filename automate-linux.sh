@@ -1085,21 +1085,22 @@ add_users() {
 
 del_users() {
         getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
-        read -rp "Please enter the a list seperated by a comma of the number corresponding to the user you wish to remove: " user_del_list
-	sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" | sort -rn > del_list.chiketool
-	while read -r user; do
-		if [[ "$user" -eq 0 ]]; then
-			echo "Cannot remove this user, please select another"
+        read -rp "Please enter the number corresponding to the user you wish to remove: " user_del
+	#sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" | sort -rn > del_list.chiketool
+	#while read -r user; do
+		if [[ "$user_del" -eq 0 ]]; then
+			echo "Cannot remove user number "$user_del", please select another"
 			del_users
-		elif [[ "$user" -gt 0 ]]; then
+		elif [[ "$user_del" -gt 0 ]]; then
         		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" #&> /dev/null
 		else
-			echo "Cannot remove this user, please select another"
-			del_users
+			echo "Cannot remove user number "$user_del", Returning to main menu"
+			menu
+			
 		fi
-	done < del_list.chiketool
-	rm -f del_list.checklist
-        sleep 3
+	#done < del_list.chiketool
+	#rm -f del_list.checklist
+        sleep 6
         clear
         end
         menu
