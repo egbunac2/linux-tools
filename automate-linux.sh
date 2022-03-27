@@ -1038,7 +1038,7 @@ add_users() {
                 if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
 	                while read -r user1; do
 		                sudo usermod -aG sudo "$user1"
-		                echo "$user1 has successfully been added to the wheel group"
+		                echo "$user1 has successfully been added to the sudo group"
 	                done < list.chiketool
 	                rm -rf list.chiketool
                         sleep 3
@@ -1085,16 +1085,20 @@ add_users() {
 
 del_users() {
         getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
-        read -rp "Please enter the number of the user you wish to remove: " user_del_list
-	if [[ "$user_del_list" -eq 0 ]]; then
-		echo "Cannot remove this user, please select another"
-		del_users
-	elif [[ "$user_del_list" -gt 0 ]]; then
-        	getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" &> /dev/null
-	else
-		echo "Cannot remove this user, please select another"
-		del_users
-	fi
+        read -rp "Please enter the a list seperated by a comma of the number corresponding to the user you wish to remove: " user_del_list
+	sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" > del_list.chiketool
+	while read -r user; do
+		if [[ "$user" -eq 0 ]]; then
+			echo "Cannot remove this user, please select another"
+			del_users
+		elif [[ "$user" -gt 0 ]]; then
+        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" &> /dev/null
+		else
+			echo "Cannot remove this user, please select another"
+			del_users
+		fi
+	done < del_list.chiketool
+	rm -f del_list.checklist
         sleep 3
         clear
         end
