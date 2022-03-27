@@ -301,6 +301,7 @@ req_cert() {
                         sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install epel-release &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
+			sudo yum -y install python3-certbot-apache &>> /var/log/Chike_tools/request_cert.log 2>&1
                         if [[ "$?" -ne 0 ]]; then
                                 sudo yum -y install pytest python3 augeas-libs &>> /var/log/Chike_tools/request_cert.log 2>&1
                                 sudo python3 -m venv /opt/certbot/ &>> /var/log/Chike_tools/request_cert.log 2>&1
