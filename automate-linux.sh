@@ -1092,7 +1092,7 @@ del_users() {
 			echo "Cannot remove this user, please select another"
 			del_users
 		elif [[ "$user" -gt 0 ]]; then
-        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" &> /dev/null
+        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" #&> /dev/null
 		else
 			echo "Cannot remove this user, please select another"
 			del_users
