@@ -1086,7 +1086,7 @@ add_users() {
 del_users() {
         getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
         read -rp "Please enter the a list seperated by a comma of the number corresponding to the user you wish to remove: " user_del_list
-	sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" | tac > del_list.chiketool
+	sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" | sort -rn > del_list.chiketool
 	while read -r user; do
 		if [[ "$user" -eq 0 ]]; then
 			echo "Cannot remove this user, please select another"
