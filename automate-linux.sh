@@ -649,6 +649,7 @@ create_lv() {
 
 
 menu() {
+	start
         #This function is the menu. The code for the display is ugly and fragile but works for the purpose needed.
         #There is a call to the splash screen function first to waste time before offering options. This will eventually become annoying.
         splash_screen "$@"
@@ -695,7 +696,7 @@ menu() {
 }
 
 lv() {
-        
+        start
         echo "1) Create Logical Volume
 2) Extend Logical Volume
 3) Return To Menu
@@ -718,6 +719,7 @@ lv() {
 }
 
 raided() {
+	start
        
         echo
         echo
@@ -735,6 +737,7 @@ raided() {
         elif [[ "$tool" -eq 2 ]];then
                 remove_raid
         elif [[ "$tool" -eq 3 ]];then
+		end
                 menu
         else
                 echo "exiting......"
@@ -746,6 +749,7 @@ raided() {
 }
 
 users() {
+	start
        
         echo
         echo
@@ -983,6 +987,7 @@ raid() {
 }
 
 remove_raid() {
+	start
         echo "Please select the RAID array you will like to remove" | sudo tee -a /var/log/Chike_tools/remove_raid.log 2>&1
         echo "NOTE: This process will completely destroy the array and any data written to it. Make sure that you are operating on the correct array and that you have copied off any data you need to retain prior to destroying the array." | sudo tee -a /var/log/Chike_tools/remove_raid.log 2>&1
         echo "Would you like to continue? " 
@@ -1084,6 +1089,7 @@ add_users() {
 }
 
 del_users() {
+	start
         getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
         read -rp "Please enter the number corresponding to the user you wish to remove: " user_del
 	#sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" | sort -rn > del_list.chiketool
