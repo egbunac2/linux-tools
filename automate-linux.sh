@@ -6,7 +6,7 @@ if [[ "$?" -ne 0 ]]; then
 	state=$(getenforce)
 fi
 #os=$(awk -F= '/\<ID\>/{gsub(/"/,"");print $2}' /etc/os-release)
-os=$(sed -n '/ID_LIKE/s/.*="\?\([^ ]*\).*/\1/p' /etc/os-release)
+os=$(sed -n '/ID_LIKE/s/.*="\?\([^" ]*\).*/\1/p' /etc/os-release)
 
 
 
