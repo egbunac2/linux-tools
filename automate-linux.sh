@@ -32,7 +32,7 @@ splash_screen() {
                         fi
                         sudo apt -y install python3 &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os == "fedora" ]];then
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
                 if [[ ! -d "$dir" ]];then
                         if [[ ! -f "$file" ]];then
                                 sudo touch "$file"
@@ -52,7 +52,7 @@ splash_screen() {
                 if [[ ! -d "$curled" ]];then
                         sudo apt -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os == "fedora" ]];then 
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then 
                 if [[ ! -d "$curled" ]];then
                         sudo yum -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
@@ -107,7 +107,7 @@ check_ssl() {
         if sudo test ! -d "$check" ;then
 
                 #Check the system in use had mod_ssl, if not, install mod_ssl
-                if [[ "$os" == "rhel" || "$os == "fedora" || "$os == "centos" ]];then
+                if [[ "$os" == "rhel" || "$os" == "fedora" || "$os" == "centos" ]];then
                         echo "$(date +'%T %D'),$os is in use" | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/ssl_check.log
                         echo "Now installing mod_ssl" | sudo tee -a /var/log/Chike_tools/ssl_check.log
                         sleep 1
