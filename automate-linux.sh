@@ -32,7 +32,7 @@ splash_screen() {
                         fi
                         sudo apt -y install python3 &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then
                 if [[ ! -d "$dir" ]];then
                         if [[ ! -f "$file" ]];then
                                 sudo touch "$file"
@@ -52,7 +52,7 @@ splash_screen() {
                 if [[ ! -d "$curled" ]];then
                         sudo apt -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" ]];then 
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then 
                 if [[ ! -d "$curled" ]];then
                         sudo yum -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
@@ -107,7 +107,7 @@ check_ssl() {
         if sudo test ! -d "$check" ;then
 
                 #Check the system in use had mod_ssl, if not, install mod_ssl
-                if [[ "$os" == "rhel" ]];then
+                if [[ "$os" == "rhel" || "$os = "fedora" || "$os = "centos" ]];then
                         echo "$(date +'%T %D'),$os is in use" | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/ssl_check.log
                         echo "Now installing mod_ssl" | sudo tee -a /var/log/Chike_tools/ssl_check.log
                         sleep 1
@@ -297,7 +297,7 @@ req_cert() {
                                 sudo /opt/certbot/bin/pip install certbot certbot-apache &>> /var/log/Chike_tools/request_cert.log 2>&1
                                 sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
                         fi
-                elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
+                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then
                         sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install epel-release &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
@@ -361,7 +361,7 @@ EOF
                         sudo sed '/<IfModule mod_ssl.c>/,/<\/IfModule>/d' /etc/apache2/apache2.conf > /tmp/temp
                         sudo rm -rf /etc/apache2/apache2.conf
                         sudo mv /tmp/temp /etc/apache2/apache2.conf
-                elif [[ "$os" == "rhel" || "$os" == "centos" ]];then        
+                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then        
                         sudo sed '/<IfModule mod_ssl.c>/,/<\/IfModule>/d' /etc/httpd/conf/httpd.conf > /tmp/temp
                         sudo rm -rf /etc/httpd/conf/httpd.conf
                         sudo mv /tmp/temp /etc/httpd/conf/httpd.conf
@@ -374,7 +374,7 @@ EOF
                         if [[ "$os" == "debian" || "$os" == "ubuntu" || "$os" == "elementary" ]];then
                                 echo "RewriteRule ^/$ https://%{HTTP_HOST}/ [R,L]" | sudo tee -a /etc/apache2/apache.conf
                                 echo "Automatic https redirect added to apache configuration file"  | sudo tee -a /var/log/Chike_tools/request_cert.log
-                        elif [[ "$os" == "rhel" ]];then
+                        elif [[ "$os" == "rhel" || "$os" == "fedora" || "$os" == "centos" ]];then
                                 echo "RewriteRule ^/$ https://%{HTTP_HOST}/ [R,L]" | sudo tee -a /etc/httpd/conf/httpd.conf
                                 echo "Automatic https redirect added to apache configuration file"  | sudo tee -a /var/log/Chike_tools/request_cert.log
                         fi
@@ -394,7 +394,7 @@ EOF
                                 end
                                 menu
                         fi
-                elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
+                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then
                         sudo systemctl restart httpd &>> /var/log/Chike_tools/request_cert.log 
                         if [[ "$?" -eq 0 ]];then
                                 echo "Webserver has started successfully" | sudo tee -a /var/log/Chike_tools/request_cert.log
@@ -1057,7 +1057,7 @@ add_users() {
                         end
                         menu
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" ]]; then
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]]; then
                 read -rp "Please enter a list of users seperated by a comma that you would like to add: " user_list
                 read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
                 read -rp "What password would you like to set for the user? " password
