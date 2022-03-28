@@ -32,7 +32,7 @@ splash_screen() {
                         fi
                         sudo apt -y install python3 &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os == "fedora" ]];then
                 if [[ ! -d "$dir" ]];then
                         if [[ ! -f "$file" ]];then
                                 sudo touch "$file"
@@ -52,7 +52,7 @@ splash_screen() {
                 if [[ ! -d "$curled" ]];then
                         sudo apt -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
-        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then 
+        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os == "fedora" ]];then 
                 if [[ ! -d "$curled" ]];then
                         sudo yum -y install curl &>> /var/log/Chike_tools/logs 2>&1
                 fi
@@ -107,7 +107,7 @@ check_ssl() {
         if sudo test ! -d "$check" ;then
 
                 #Check the system in use had mod_ssl, if not, install mod_ssl
-                if [[ "$os" == "rhel" || "$os = "fedora" || "$os = "centos" ]];then
+                if [[ "$os" == "rhel" || "$os == "fedora" || "$os == "centos" ]];then
                         echo "$(date +'%T %D'),$os is in use" | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/ssl_check.log
                         echo "Now installing mod_ssl" | sudo tee -a /var/log/Chike_tools/ssl_check.log
                         sleep 1
@@ -297,7 +297,7 @@ req_cert() {
                                 sudo /opt/certbot/bin/pip install certbot certbot-apache &>> /var/log/Chike_tools/request_cert.log 2>&1
                                 sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
                         fi
-                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then
+                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
                         sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install epel-release &>> /var/log/Chike_tools/request_cert.log 2>&1
                         sudo yum -y install certbot &>> /var/log/Chike_tools/request_cert.log 2>&1
@@ -346,7 +346,7 @@ EOF
                         if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
                                 sudo mail -r "$email" -A /etc/letsencrypt/live/"$domain".lsbu.ac.uk/cert.pem -A /etc/letsencrypt/live/"$domain".lsbu.ac.uk/privkey.pem -A /etc/letsencrypt/live/"$domain".lsbu.ac.uk/chain.pem -s "CertificateFile For $domain.lsbu.ac.uk" "$email" < Certificate
                                 rm -rf Certificate
-                        elif [[ "$os" == "rhel" || "$os" == "centos" ]];then
+                        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
                                 sudo mail -r "$email" -a /etc/letsencrypt/live/"$domain".lsbu.ac.uk/cert.pem -a /etc/letsencrypt/live/"$domain".lsbu.ac.uk/privkey.pem -a /etc/letsencrypt/live/"$domain".lsbu.ac.uk/chain.pem -s "CertificateFile For $domain.lsbu.ac.uk" "$email" < Certificate
                                 rm -rf Certificate
                         fi
@@ -394,7 +394,7 @@ EOF
                                 end
                                 menu
                         fi
-                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os = "fedora" ]];then
+                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
                         sudo systemctl restart httpd &>> /var/log/Chike_tools/request_cert.log 
                         if [[ "$?" -eq 0 ]];then
                                 echo "Webserver has started successfully" | sudo tee -a /var/log/Chike_tools/request_cert.log
