@@ -1094,13 +1094,13 @@ del_users() {
 	start
         getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t
         read -rp "Please enter the number corresponding to the user you wish to remove: " user_del
-	#sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del_list" | sort -rn > del_list.chiketool
+	#sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del" | sort -rn > del_list.chiketool
 	#while read -r user; do
 		if [[ "$user_del" -eq 0 ]]; then
 			echo "Cannot remove user number "$user_del", please select another"
 			del_users
 		elif [[ "$user_del" -gt 0 ]]; then
-        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del_list+1))s/\([^ ]*\).*/userdel -r \1/pe" #&> /dev/null
+        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/userdel -r \1/pe" #&> /dev/null
 		else
 			echo "Cannot remove user number "$user_del", Returning to main menu"
 			menu
