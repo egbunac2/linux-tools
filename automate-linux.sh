@@ -84,7 +84,7 @@ os.system(\"curl \" +  website)") &
         if [[ ! -d "$log_dir" ]]; then
                 echo "Creating log file in /var/log/Chike_tools/extend_lv.log"
                 sudo mkdir /var/log/Chike_tools/
-                sudo touch /var/log/Chike_tools/{extend_lv.log,create_lv.log,extend_vg.log,create_partition.log,request_cert.log,generate_csr.log,ssl_check.log,logs,raid.log,remove_raid.log}
+                sudo touch /var/log/Chike_tools/{extend_lv.log,create_lv.log,extend_vg.log,create_partition.log,request_cert.log,generate_csr.log,ssl_check.log,logs,raid.log,remove_raid.log,del_users,add_users}
                 sudo chown -R "$me":"$me" /var/log/Chike_tools
         fi
         sleep 1
@@ -320,7 +320,7 @@ req_cert() {
         done
         #Automate the entire installation with certbot and Sectigo's API. Fields are pre-filled with my API credentials
         #but can be changed if needed
-        read -rp "Please enter your email: " email
+        #read -rp "Please enter your email: " email
         read -rp "Please enter your KEY ID: " key_id
         read -rp "Please enter your HMAC KEY: " hmac_key
         read -rp "Is this a apache or nginx webserver? " webserver
@@ -528,6 +528,31 @@ extend_vg() {
         if [[ "$?" -eq 0 ]];then
                 echo "$(date +'%T %D'),Volume Group $vg has successfully been extended with partition $drive." | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/extend_vg.log
                 sleep 3
+		#Is sendmail available?
+                type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+Volume Group $vg has been extended on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+Volume Group $vg was extended with $drive
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                sudo mail -r "$email" -A /var/log/Chike_tools/extend_vg.log -s "Log of Extended Volume Group" "$email" < Certificate
+                                rm -rf Certificate
+                        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                sudo mail -r "$email" -a /var/log/Chike_tools/extend_vg.log -s "Log of Extended Volume Group" "$email" < Certificate
+                                rm -rf Certificate
+                        fi
+                else
+                        echo "mailx is not available"  | tee -a /var/log/Chike_tools/extend_vg.log 2>&1
+                fi
                 end
                 menu
         else
@@ -572,6 +597,31 @@ extend_lv() {
         echo "Y) Menu"
         echo "*) Exit"
         read -rp "Logical Volume has been successfully extended. Would you like to exit or go back to the menu? " leave
+	#Is sendmail available?
+        type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+        if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+Logical Volume $drive has successfully been extended on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+The size of $drive extension is $size.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                        sudo mail -r "$email" -A /var/log/Chike_tools/extend_lv.log -s "Log of Logical Volumes Extended" "$email" < Certificate
+                        rm -rf Certificate
+                elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                        sudo mail -r "$email" -a /var/log/Chike_tools/extend_lv.log -s "Log of Logical Volumes Extended" "$email" < Certificate
+                        rm -rf Certificate
+                fi
+        else
+                echo "mailx is not available"  | tee -a /var/log/Chike_tools/extend_lv.log 2>&1
+        fi
 
         if [[ "$leave" == "Y" ]] || [[ "$leave" == "y" ]];then
                 sleep 2
@@ -598,7 +648,7 @@ create_lv() {
         vg=$(sudo vgdisplay | awk '/VG Name/{print $NF}')
         local free_space
         free_space=$(sudo vgs | awk -v vg="$vg" '$1~vg{gsub(/</,"");print $7}')
-        echo "There is $free_space free space available on this system to create a Logical Volume with."
+        echo "There is $free_space free space available on this system to create a Logical Volume with." | tee -a /var/log/Chike_tools/create_lv.log
         read -rp "Please enter the name you wish to use for the Logical Volume: " drive
         read -rp "What size would you like the Logical Volume to be e.g 100M, 5G, 1T? " size
         read -rp "Where do you want to mount point e.g /var/log/custom? " mount_point
@@ -606,6 +656,7 @@ create_lv() {
         #Now all data has been collected, the function will now create the LV and filesystem of choice.
         sudo lvcreate -n "$drive" -L "$size" "$vg" &>> /var/log/Chike_tools/create_lv.log 2>&1
         if [[ "$?" -eq 0 ]]; then
+	echo "Logical volume $drive created" | tee -a /var/log/Chike_tools/create_lv.log
         read -rp "What filesystem should $drive use (ext4, xfs)?: " fs2
                 if [[ "$fs2" == "xfs" ]];then
                         sudo mkfs.xfs /dev/"$vg"/"$drive" | sudo tee -a /var/log/Chike_tools/create_lv.log 2>&1
@@ -624,6 +675,33 @@ create_lv() {
                         echo "$(date +'%T %D'),/dev/$vg/$drive Logical Volume Created,Mounted at $mount_point,/dev/$vg/$drive is $size " | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/create_lv.log
                         echo "Y) Menu"
                         echo "*) Exit"
+			echo "Logical Volume successfully created and mounted" | tee /var/log/Chike_tools/create_lv.log
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+Logical Volume "$drive" has been created on $(date +'%d/%m/%y') at $(date +'%T') on Linux box "$HOSTNAME".
+The size of Logical Volume $drive is $size.
+The Logical Volume is mounted at $mount_point and utilises $fs2 filesystem.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/create_lv.log -s "Log of Logical Volumes Created" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/create_lv.log -s "Log of Logical Volumes Created" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/create_lv.log 2>&1
+                	fi
                         read -rp "Logical Volume created and mounted. Would you like to exit or go back to the menu? " leave
                         if [[ "$leave" == "Y" ]] || [[ "$leave" == "y" ]];then
                                 end
@@ -807,14 +885,15 @@ raid() {
 
         echo "RAID is best set up with drives of similar sizes. If drives are not the same size, you can partition them first and then create the RAID device"
         read -rp "What level of RAID would you like to add (0, 1, 5 or 6)? " raid_level
+	echo "RAID $raid_levelhas been selected." | tee -a /var/log/Chike_tools/raid.log
         if [[ "$raid_level" -eq 0 ]];then
-                echo "Checking at least 2 empty drives exist to create the array"
+                echo "Checking at least 2 empty drives exist to create the array" | tee -a /var/log/Chike_tools/raid.log
                 echo "NOTE: There is no redundancy offered with RAID 0 except performance gain. Consider RAID 1"
                 emp_drives=$(printf '%s %s\n' "$raid_drives" | wc -l)
                 if [[ "$emp_drives" -ge 2 ]]; then
-                        echo "There are at least 2 empty drives available."
-                        echo "Here is a list of the available drives"
-                        printf '%s %s\n' "$raid_drives"
+                        echo "There are at least 2 empty drives available." | tee -a /var/log/Chike_tools/raid.log
+                        echo "Here is a list of the available drives" | tee -a /var/log/Chike_tools/raid.log
+                        printf '%s %s\n' "$raid_drives" | tee -a /var/log/Chike_tools/raid.log
                         read -rp "Please select the first drive from the first column list e.g sdb: " drive1
                         read -rp "Please select the second drive from the first column list e.g sdc: " drive2
                         read -rp "What should the name of the RAID array be e.g md0? " raid_name
@@ -826,20 +905,51 @@ raid() {
                                 sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         else
                                 sudo yum -y install mdadm &>> logs
                                 sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
+			echo "Filesystem $fs successfully added for /dev/md/$raid_name" | tee -a /var/log/Chike_tools/raid.log
                         sudo mkdir -p $mnt_dir
+			echo "Successfully added directory $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
+			echo "Successfully mounted /dev/md/$raid_name to $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
 
                         #Ensure array is reassembled during boot
                         sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
                         sudo update-initramfs -u
                         echo "/dev/md/$raid_name $mnt_dir ext4 defaults,nofail,discard 0 0" | sudo tee -a /etc/fstab
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have added RAID $raid_level using /dev/$drive1 and /dev/$drive2 on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+Your RAID array is called $raid_name and is located at /dev/md/$raid_name.
+The RAID array is mounted at $mnt_dir and utilises the $fs filesystem.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/raid.log 2>&1
+                	fi
                         sleep 2
                         end
                         menu
@@ -851,13 +961,13 @@ raid() {
                         menu
                 fi
         elif [[ "$raid_level" -eq 1 ]];then
-                echo "Checking at least 2 empty drives exist to create the array"
+                echo "Checking at least 2 empty drives exist to create the array" | tee -a /var/log/Chike_tools/raid.log
                 echo "NOTE: You will lose half of your available storage but will gain redundancy if a drive should fail"
                 emp_drives=$(printf '%s %s\n' "$raid_drives" | wc -l)
                 if [[ "$emp_drives" -ge 2 ]]; then
-                        echo "There are at least 2 empty drives available."
-                        echo "Here is a list of the available drives"
-                        printf '%s %s\n' "$raid_drives"
+                        echo "There are at least 2 empty drives available." | tee -a /var/log/Chike_tools/raid.log
+                        echo "Here is a list of the available drives" | tee -a /var/log/Chike_tools/raid.log
+                        printf '%s %s\n' "$raid_drives" | tee -a /var/log/Chike_tools/raid.log
                         read -rp "Please select the first drive from the first column list e.g sdb: " drive1
                         read -rp "Please select the second drive from the first column list e.g sdc: " drive2
                         read -rp "What should the name of the RAID array be e.g md0? " raid_name
@@ -869,20 +979,51 @@ raid() {
                                 sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         else
                                 sudo yum -y install mdadm &>> logs
                                 sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
+			echo "Filesystem $fs successfully added for /dev/md/$raid_name" | tee -a /var/log/Chike_tools/raid.log
                         sudo mkdir -p $mnt_dir
+			echo "Successfully added directory $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
+			echo "Successfully mounted /dev/md/$raid_name to $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
 
                         #Ensure array is reassembled during boot
                         sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
                         sudo update-initramfs -u
                         echo "/dev/md/$raid_name $mnt_dir ext4 defaults,nofail,discard 0 0" | sudo tee -a /etc/fstab
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have added RAID $raid_level using /dev/$drive1 and /dev/$drive2 on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+Your RAID array is called $raid_name and is located at /dev/md/$raid_name.
+The RAID array is mounted at $mnt_dir and utilises the $fs filesystem.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/raid.log 2>&1
+                	fi
                         sleep 2
                         end
                         menu
@@ -894,13 +1035,13 @@ raid() {
                         menu
                 fi
         elif [[ "$raid_level" -eq 5 ]];then
-                echo "Checking at least 3 empty drives exist to create the array"
+                echo "Checking at least 3 empty drives exist to create the array" | tee -a /var/log/Chike_tools/raid.log
                 echo "NOTE: There is no redundancy offered with RAID 0 except performance gain. Consider RAID 1"
                 emp_drives=$(printf '%s %s\n' "$raid_drives" | wc -l)
                 if [[ "$emp_drives" -ge 3 ]]; then
-                        echo "There are at least 3 empty drives available."
-                        echo "Here is a list of the available drives"
-                        printf '%s %s\n' "$raid_drives"
+                        echo "There are at least 3 empty drives available." | tee -a /var/log/Chike_tools/raid.log
+                        echo "Here is a list of the available drives" | tee -a /var/log/Chike_tools/raid.log
+                        printf '%s %s\n' "$raid_drives" | tee -a /var/log/Chike_tools/raid.log
                         read -rp "Please select the first drive from the first column list e.g sdb: " drive1
                         read -rp "Please select the second drive from the first column list e.g sdc: " drive2
                         read -rp "Please select the third drive from the first column list e.g sdd: " drive3
@@ -913,20 +1054,52 @@ raid() {
                                 sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=3 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         else
                                 sudo yum -y install mdadm &>> logs
-                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=3 /dev/"$drive1" /dev/"$drive2"
+                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=3 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
+			echo "Filesystem $fs successfully added for /dev/md/$raid_name" | tee -a /var/log/Chike_tools/raid.log
                         sudo mkdir -p $mnt_dir
+			echo "Successfully added directory $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
+			echo "Successfully mounted /dev/md/$raid_name to $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
+
 
                         #Ensure array is reassembled during boot
                         sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
                         sudo update-initramfs -u
                         echo "/dev/md/$raid_name $mnt_dir ext4 defaults,nofail,discard 0 0" | sudo tee -a /etc/fstab
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have added RAID $raid_level using /dev/$drive1, /dev/$drive2 and /dev/$drive3 on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+Your RAID array is called $raid_name and is located at /dev/md/$raid_name.
+The RAID array is mounted at $mnt_dir and utilises the $fs filesystem.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/raid.log 2>&1
+                	fi
                         sleep 2
                         end
                         menu
@@ -938,13 +1111,13 @@ raid() {
                         menu
                 fi
         elif [[ "$raid_level" -eq 6 ]];then
-                echo "Checking at least 4 empty drives exist to create the array"
+                echo "Checking at least 4 empty drives exist to create the array" | tee -a /var/log/Chike_tools/raid.log
                 echo "NOTE: There is no redundancy offered with RAID 0 except performance gain. Consider RAID 1"
                 emp_drives=$(printf '%s %s\n' "$raid_drives" | wc -l)
                 if [[ "$emp_drives" -ge 4 ]]; then
-                        echo "There is at least 4 empty drives available."
-                        echo "Here is a list of the available drives"
-                        printf '%s %s\n' "$raid_drives"
+                        echo "There is at least 4 empty drives available." | tee -a /var/log/Chike_tools/raid.log
+                        echo "Here is a list of the available drives" | tee -a /var/log/Chike_tools/raid.log
+                        printf '%s %s\n' "$raid_drives" | tee -a /var/log/Chike_tools/raid.log
                         read -rp "Please select the first drive from the first column list e.g sdb: " drive1
                         read -rp "Please select the second drive from the first column list e.g sdc: " drive2
                         read -rp "Please select the third drive from the first column list e.g sdc: " drive3
@@ -958,26 +1131,58 @@ raid() {
                                 sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=4 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3" /dev/"$drive4"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         else
                                 sudo yum -y install mdadm &>> logs
-                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=4 /dev/"$drive1" /dev/"$drive2"
+                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=4 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3" /dev/"$drive4"
                                 sudo cat /proc/mdstat
                                 sleep 3
+				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         fi
                         sudo mkfs."$fs" /dev/md/"$raid_name"
+			echo "Filesystem $fs successfully added for /dev/md/$raid_name" | tee -a /var/log/Chike_tools/raid.log
                         sudo mkdir -p $mnt_dir
+			echo "Successfully added directory $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
                         sudo mount /dev/md/"$raid_name" "$mnt_dir"
+			echo "Successfully mounted /dev/md/$raid_name to $mnt_dir" | tee -a /var/log/Chike_tools/raid.log
+
 
                         #Ensure array is reassembled during boot
                         sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
                         sudo update-initramfs -u
                         echo "/dev/md/$raid_name $mnt_dir ext4 defaults,nofail,discard 0 0" | sudo tee -a /etc/fstab
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have added RAID "$raid_level" using /dev/$drive1, /dev/$drive2, /dev/$drive3 and /dev/$drive4 on $(date +'%d/%m/%y') at $(date +'%T') on Linux box "$HOSTNAME".
+Your RAID array is called $raid_name and is located at /dev/md/$raid_name.
+The RAID array is mounted at $mnt_dir and utilises the $fs filesystem.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/raid.log 2>&1
+                	fi
                         sleep 2
                         end
                         menu
                 else
-                        echo "There are not enough available drives to create this array."
-                        echo "This is a FATAL error. Returning to menu"
+                        echo "There are not enough available drives to create this array."  | tee -a /var/log/Chike_tools/raid.log
+                        echo "This is a FATAL error. Returning to menu"  | tee -a /var/log/Chike_tools/raid.log
                         sleep 2
                         end
                         menu
@@ -1017,8 +1222,9 @@ remove_raid() {
                 sudo sed '/,nofail,discard/{s/^/#/}' /etc/fstab > /tmp/tempfile
                 sudo rm -rf /etc/fstab
                 sudo mv /tmp/tempfile /etc/fstab
+		echo "fstab has been updated" | tee -a /var/log/Chike_tools/remove_raid.log
         else
-                echo "Operation has been aborted. Returning to the menu"
+                echo "Operation has been aborted. Returning to the menu" | tee -a /var/log/Chike_tools/remove_raid.log
                 sleep 2
                 end
                 menu
@@ -1038,21 +1244,47 @@ add_users() {
                 while read -r user; do 
 	                sudo useradd -m -p $(openssl passwd -1 "$password") --shell /bin/"$shell" "$user" 
 	                #sudo echo "$user:$password" | chpasswd
-	                echo "$user has been added to the system with a $shell shell"
+	                echo "$user has been added to the system with a $shell shell" | tee -a /var/log/Chike_tools/add_users.log
                 done < list.chiketool
                 read -rp "Should the user have sudo/root access? " access
                 if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
 	                while read -r user1; do
 		                sudo usermod -aG sudo "$user1"
-		                echo "$user1 has successfully been added to the sudo group"
+		                echo "$user1 has successfully been added to the sudo group" | tee -a /var/log/Chike_tools/add_users.log
 	                done < list.chiketool
 	                rm -rf list.chiketool
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have added the following users; $(sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_list") have successfully been added to the system on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/add_users.log -s "Log of Users Added" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/add_users.log -s "Log of Users Added" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/add_users.log 2>&1
+                	fi
+			echo "$(sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_list") has been added to the sudo group" | tee -a /var/log/Chike_tools/add_users.log
                         sleep 3
                         clear
                         end
                         menu
                 else
-	                rm -rf list.chiketool
+	                echo "$(sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_list") has not been added to the sudo group" | tee -a /var/log/Chike_tools/add_users.log
+			rm -rf list.chiketool
                         sleep 3
                         clear
                         end
@@ -1067,15 +1299,39 @@ add_users() {
                 while read -r user; do 
 	                sudo adduser -m --shell /bin/"$shell" "$user" 
 	                echo "$user:$password" | sudo chpasswd
-	                echo "$user has been added to the system with a $shell shell"
+	                echo "$user has been added to the system with a $shell shell" | tee -a /var/log/Chike_tools/add_users.log
                 done < list.chiketool
                 read -rp "Should the user have sudo/root access? " access
                 if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
 	                while read -r user1; do
 		                sudo usermod -aG wheel "$user1"
-		                echo "$user1 has successfully been added to the wheel group"
+		                echo "$user1 has successfully been added to the wheel group" | tee -a /var/log/Chike_tools/add_users.log
 	                done < list.chiketool
 	                rm -rf list.chiketool
+			#Is sendmail available?
+                	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                	if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have added the following users; $(sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_list") have successfully been added to the system on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        	if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                	sudo mail -r "$email" -A /var/log/Chike_tools/add_users.log -s "Log of Users Added" "$email" < Certificate
+                                	rm -rf Certificate
+                        	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                	sudo mail -r "$email" -a /var/log/Chike_tools/add_users.log -s "Log of Users Added" "$email" < Certificate
+                                	rm -rf Certificate
+                        	fi
+                	else
+                        	echo "mailx is not available"  | tee -a /var/log/Chike_tools/add_users.log 2>&1
+                	fi
                         sleep 3
                         clear
                         end
@@ -1097,15 +1353,39 @@ del_users() {
 	#sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del" | sort -rn > del_list.chiketool
 	#while read -r user; do
 		if [[ "$user_del" -eq 0 ]]; then
-			echo "Cannot remove user number "$user_del", please select another"
+			echo "Cannot remove user number "$user_del", please select another" | tee -a /var/log/Chike_tools/del_users.log
 			del_users
 		elif [[ "$user_del" -gt 0 ]]; then
-        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/userdel -r \1/pe" #&> /dev/null
+        		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/userdel -r \1/pe" | tee -a /var/log/Chike_tools/del_users.log
 		else
-			echo "Cannot remove user number "$user_del", Returning to main menu"
+			echo "Cannot remove user number "$user_del", Returning to main menu" | tee -a /var/log/Chike_tools/del_users.log
 			menu
 			
 		fi
+		#Is sendmail available?
+                type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have deleted the user $user_del on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                sudo mail -r "$email" -A /var/log/Chike_tools/del_users.log -s "Log of deleted users" "$email" < Certificate
+                                rm -rf Certificate
+                        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                sudo mail -r "$email" -a /var/log/Chike_tools/del_users.log -s "Log of deleted users" "$email" < Certificate
+                                rm -rf Certificate
+                        fi
+                else
+                        echo "mailx is not available"  | tee -a /var/log/Chike_tools/del_users.log 2>&1
+                fi
 	#done < del_list.chiketool
 	#rm -f del_list.checklist
         sleep 6
@@ -1127,5 +1407,12 @@ else
         clear
         echo "Hello Engineer."
         read -rp "What is your name? " engineer_name
+	s="."
+	x="."
+	for ((i=0; i<15; i++));do
+        	echo "$s"
+        	s+=$x
+	done
+	read -rp "Please enter your email address: " email
         menu 
 fi
