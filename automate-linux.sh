@@ -1034,7 +1034,7 @@ add_users() {
                 read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
                 read -rp "What password would you like to set for the user? " password
 		sudo touch list.chiketool
-                sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list | tee list.chiketool
+                sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list | sudo tee list.chiketool
                 while read -r user; do 
 	                sudo useradd -m -p $(openssl passwd -1 "$password") --shell /bin/"$shell" "$user" 
 	                #sudo echo "$user:$password" | chpasswd
@@ -1063,7 +1063,7 @@ add_users() {
                 read -rp "What shell would you like the users to use .e.g bash, sh, zsh? " shell
                 read -rp "What password would you like to set for the user? " password
 		sudo touch list.chiketool
-                sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list > list.chiketool
+                sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list | sudo tee list.chiketool
                 while read -r user; do 
 	                sudo adduser -m --shell /bin/"$shell" "$user" 
 	                sudo echo "$user:$password" | chpasswd
