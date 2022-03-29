@@ -675,7 +675,7 @@ create_lv() {
                         echo "$(date +'%T %D'),/dev/$vg/$drive Logical Volume Created,Mounted at $mount_point,/dev/$vg/$drive is $size " | awk '{gsub(/,/,"\t")}1' | sudo tee -a /var/log/Chike_tools/create_lv.log
                         echo "Y) Menu"
                         echo "*) Exit"
-			echo "Logical Volume successfully created and mounted" | tee /var/log/Chike_tools/create_lv.log
+			echo "Logical Volume successfully created and mounted" | tee -a /var/log/Chike_tools/create_lv.log
 			#Is sendmail available?
                 	type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
                 	if [[ "$?" -eq 0 ]]; then 
@@ -902,8 +902,14 @@ raid() {
                         #Is mdadm available?
                         type mdadm &>> logs
                         if [[ "$?" -eq 0 ]]; then
-                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2"
-                                sudo cat /proc/mdstat
+                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2" &>> /var/log/Chike_tools/raid.log
+				if [[ "$?" -ne 0 ]];then
+					echo "RAID creation has failed. Ensure the selected drives are not currently in use" | tee -a /var/log/Chike_tools/raid.log
+					sleep 5
+					end
+					menu
+				fi
+                                sudo cat /proc/mdstat | tee -a /var/log/Chike_tools/raid.log
                                 sleep 3
 				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         else
@@ -944,7 +950,7 @@ EOF
                                 	sudo mail -r "$email" -A /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
                                 	rm -rf Certificate
                         	elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
-                                	sudo mail -r "$email" -a /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
+              				sudo mail -r "$email" -a /var/log/Chike_tools/raid.log -s "Log of Added RAID Device" "$email" < Certificate
                                 	rm -rf Certificate
                         	fi
                 	else
@@ -976,7 +982,13 @@ EOF
                         #Is mdadm available?
                         type mdadm &>> logs
                         if [[ "$?" -eq 0 ]]; then
-                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2"
+                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=2 /dev/"$drive1" /dev/"$drive2" &>> /var/log/Chike_tools/raid.log
+				if [[ "$?" -ne 0 ]];then
+					echo "RAID creation has failed. Ensure the selected drives are not currently in use" | tee -a /var/log/Chike_tools/raid.log
+					sleep 5
+					end
+					menu
+				fi
                                 sudo cat /proc/mdstat
                                 sleep 3
 				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
@@ -1051,7 +1063,13 @@ EOF
                         #Is mdadm available?
                         type mdadm &>> logs
                         if [[ "$?" -eq 0 ]]; then
-                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=3 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3"
+                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=3 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3" &>> /var/log/Chike_tools/raid.log
+				if [[ "$?" -ne 0 ]];then
+					echo "RAID creation has failed. Ensure the selected drives are not currently in use" | tee -a /var/log/Chike_tools/raid.log
+					sleep 5
+					end
+					menu
+				fi
                                 sudo cat /proc/mdstat
                                 sleep 3
 				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
@@ -1128,8 +1146,14 @@ EOF
                         #Is mdadm available?
                         type mdadm &>> logs
                         if [[ "$?" -eq 0 ]]; then
-                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=4 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3" /dev/"$drive4"
-                                sudo cat /proc/mdstat
+                                sudo mdadm --create --verbose /dev/md/"$raid_name" --level="$raid_level" --raid-devices=4 /dev/"$drive1" /dev/"$drive2" /dev/"$drive3" /dev/"$drive4" &>> /var/log/Chike_tools/raid.log
+                                if [[ "$?" -ne 0 ]];then
+					echo "RAID creation has failed. Ensure the selected drives are not currently in use" | tee -a /var/log/Chike_tools/raid.log
+					sleep 5
+					end
+					menu
+				fi
+				sudo cat /proc/mdstat
                                 sleep 3
 				echo "RAID $raid_level successfully added" | tee -a /var/log/Chike_tools/raid.log
                         else
@@ -1200,22 +1224,22 @@ remove_raid() {
         echo "N"
         read -rp "Selection: " destroy 
         if [[ $destroy == "Y" ]] || [[ $destroy == "y" ]]; then
-                sudo cat /proc/mdstat &>>  /var/log/Chike_tools/remove_raid.log 2>&1
+                sudo cat /proc/mdstat | sudo | tee -a /var/log/Chike_tools/remove_raid.log 2>&1
 
                 #Unmount the array from filesystem
                 read -rp "Please select the array to remove e.g md0, md89, md126: " rem_array
-                sudo umount /dev/"$rem_array" &>>  /var/log/Chike_tools/remove_raid.log 2>&1
+                sudo umount /dev/"$rem_array" | tee -a /var/log/Chike_tools/remove_raid.log 2>&1
 
                 #Now stop and remove the array
-                sudo mdadm --stop /dev/"$rem_array" &>>  /var/log/Chike_tools/remove_raid.log 2>&1
-                sudo mdadm --remove /dev/"$rem_array" &>>  /var/log/Chike_tools/remove_raid.log 2>&1
+                sudo mdadm --stop /dev/"$rem_array" | tee -a  /var/log/Chike_tools/remove_raid.log 2>&1
+                sudo mdadm --remove /dev/"$rem_array" | tee -a  /var/log/Chike_tools/remove_raid.log 2>&1
 
                 #Find arrays drives
                 remove=$(lsblk -o KNAME,FSTYPE | grep -B1 "rem_array" | awk '$1~/sd/{print $1}')
 
                 #Run through list of found drives to zero their superblocks and reset to normal
                 for line in "$remove"; do
-                sudo mdadm --zero-superblock /dev/"$line" &>>  /var/log/Chike_tools/remove_raid.log 2>&1
+                sudo mdadm --zero-superblock /dev/"$line" | tee -a  /var/log/Chike_tools/remove_raid.log 2>&1
                 done
 
                 #Edit fstab and cleanup
@@ -1223,9 +1247,38 @@ remove_raid() {
                 sudo rm -rf /etc/fstab
                 sudo mv /tmp/tempfile /etc/fstab
 		echo "fstab has been updated" | tee -a /var/log/Chike_tools/remove_raid.log
+		#Is sendmail available?
+                type mail &>> /var/log/Chike_tools/request_cert.log 2>&1
+                if [[ "$?" -eq 0 ]]; then 
+cat << EOF > Certificate
+Hello $engineer_name
+
+This is to confirm you have removed a RAID array from the system on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+RAID array $rem_array has been removed and it's entries in fstab commented out.
+
+If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
+
+Kind regards
+Linux is MUCH better than Windozz
+EOF
+
+                        if [[ "$os" == "debian" || "$os" == "ubuntu" ]];then
+                                sudo mail -r "$email" -A /var/log/Chike_tools/remove_raid.log -s "Log of Users Added" "$email" < Certificate
+                                rm -rf Certificate
+                        elif [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "fedora" ]];then
+                                sudo mail -r "$email" -a /var/log/Chike_tools/remove_raid.log -s "Log of Users Added" "$email" < Certificate
+                                rm -rf Certificate
+                        fi
+                else
+                        echo "mailx is not available"  | tee -a /var/log/Chike_tools/remove_raid.log 2>&1
+                fi
+		sleep 5
+		end
+		menu
         else
-                echo "Operation has been aborted. Returning to the menu" | tee -a /var/log/Chike_tools/remove_raid.log
-                sleep 2
+                echo "$(date) RAID array not removed. This is an error." | tee -a /var/log/Chike_tools/remove_raid.log
+		echo "Operation has been aborted. Returning to the menu" | tee -a /var/log/Chike_tools/remove_raid.log
+                sleep 5
                 end
                 menu
         fi
@@ -1357,6 +1410,7 @@ del_users() {
 			del_users
 		elif [[ "$user_del" -gt 0 ]]; then
         		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/userdel -r \1/pe" | tee -a /var/log/Chike_tools/del_users.log
+			echo "$(getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/\1/p") has been removed from the system" | tee -a /var/log/Chike_tools/del_users.log
 		else
 			echo "Cannot remove user number "$user_del", Returning to main menu" | tee -a /var/log/Chike_tools/del_users.log
 			menu
@@ -1368,7 +1422,7 @@ del_users() {
 cat << EOF > Certificate
 Hello $engineer_name
 
-This is to confirm you have deleted the user $user_del on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
+This is to confirm you have deleted the user $(getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/\1/p") on $(date +'%d/%m/%y') at $(date +'%T') on Linux box $HOSTNAME.
 
 If for any reason something has gone wrong, please check the logs or reach out to myself (Chike Egbuna) so I can take a look and resolve the fault.
 
