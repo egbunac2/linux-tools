@@ -1066,7 +1066,7 @@ add_users() {
                 sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list | sudo tee list.chiketool
                 while read -r user; do 
 	                sudo adduser -m --shell /bin/"$shell" "$user" 
-	                sudo echo "$user:$password" | chpasswd
+	                echo "$user:$password" | sudo chpasswd
 	                echo "$user has been added to the system with a $shell shell"
                 done < list.chiketool
                 read -rp "Should the user have sudo/root access? " access
