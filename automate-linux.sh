@@ -61,7 +61,7 @@ splash_screen() {
 
         
         clear
-        echo "Hello $(echo $engineer_name | sed -z 's/./&\n/g')" | while read -r line; do
+        echo "Hello $(echo "$engineer_name" | sed -z 's/./&\n/g')" | while read -r line; do
                 printf '%s' "$line"
                 sleep 1
         done &
@@ -1380,7 +1380,7 @@ remove_raid() {
                 remove=$(lsblk -o KNAME,FSTYPE | grep -B1 "rem_array" | awk '$1~/sd/{print $1}')
 
                 #Run through list of found drives to zero their superblocks and reset to normal
-                for line in "$remove"; do
+                for line in $remove; do
                 sudo mdadm --zero-superblock /dev/"$line" | tee -a  "$log" 2>&1
                 done
 
@@ -1439,12 +1439,12 @@ add_users() {
 		sudo touch list.chiketool
                 sudo sed 's/\([^,]*\),/\1\n/g' <<< $user_list | sudo tee list.chiketool
                 while read -r user; do 
-	                sudo useradd -m -p $(openssl passwd -1 "$password") --shell /bin/"$shell" "$user" 
+	                sudo useradd -m -p "$(openssl passwd -1 "$password")" --shell /bin/"$shell" "$user" 
 	                #sudo echo "$user:$password" | chpasswd
 	                echo "$user has been added to the system with a $shell shell" | tee -a "$log"
                 done < list.chiketool
                 read -rp "Should the user have sudo/root access? " access
-                if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
+                if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "$access" == "Yes" ]];then
 	                while read -r user1; do
 		                sudo usermod -aG sudo "$user1"
 		                echo "$user1 has successfully been added to the sudo group" | tee -a "$log"
@@ -1499,7 +1499,7 @@ EOF
 	                echo "$user has been added to the system with a $shell shell" | tee -a "$log"
                 done < list.chiketool
                 read -rp "Should the user have sudo/root access? " access
-                if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "%access" == "Yes" ]];then
+                if [[ "$access" == "Y" || "$access" == "y" || "$access" == "yes" || "$access" == "Yes" ]];then
 	                while read -r user1; do
 		                sudo usermod -aG wheel "$user1"
 		                echo "$user1 has successfully been added to the wheel group" | tee -a "$log"
@@ -1552,13 +1552,13 @@ del_users() {
 	#sudo sed 's/\([^,]*\),/\1\n/g' <<< "$user_del" | sort -rn > del_list.chiketool
 	#while read -r user; do
 		if [[ "$user_del" -eq 0 ]]; then
-			echo "Cannot remove user number "$user_del", please select another" | tee -a "$log"
+			echo "Cannot remove user number $user_del, please select another" | tee -a "$log"
 			del_users
 		elif [[ "$user_del" -gt 0 ]]; then
         		getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/userdel -r \1/pe" | tee -a "$log"
 			echo "$(getent passwd | awk -F: '$3 >= 1000{print $1,cnt++}' | column -t | sudo sed -n "$((user_del+1))s/\([^ ]*\).*/\1/p") has been removed from the system" | tee -a "$log"
 		else
-			echo "Cannot remove user number "$user_del", Returning to main menu" | tee -a "$log"
+			echo "Cannot remove user number $user_del, Returning to main menu" | tee -a "$log"
 			menu
 			
 		fi
